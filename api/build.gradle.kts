@@ -35,6 +35,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.ktor.client.core)
+                implementation(libs.androidx.lifecycle.viewmodelCompose)
             }
         }
     }

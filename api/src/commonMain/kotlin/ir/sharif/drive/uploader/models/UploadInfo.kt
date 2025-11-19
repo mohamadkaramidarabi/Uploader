@@ -15,7 +15,7 @@ data class UploadInfo(
     val folderId: FolderId?,
     val cloudPath: CloudPath,
     val links: List<Link>,
-    val versionGroup: String,
+    val versionGroup: String?,
 ) {
     enum class State {
         IN_QUEUE,
