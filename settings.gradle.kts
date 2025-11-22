@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 rootProject.name = "Uploader"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
@@ -34,4 +36,6 @@ plugins {
 
 include(":composeApp")
 include(":api")
-include(":database")
+include(":common")
+include(":cache:cache-api")
+include(":cache:database")

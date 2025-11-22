@@ -34,8 +34,17 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.ktor.client.core)
                 implementation(libs.androidx.lifecycle.viewmodelCompose)
+                implementation(projects.cache.cacheApi)
+                implementation(libs.atomicfu)
+                implementation(libs.uri.kmp)
+                api(projects.common)
+            }
+        }
+
+        jvmMain {
+            dependencies {
+                implementation(projects.cache.database)
             }
         }
     }

@@ -4,6 +4,6 @@ data class UploadRequest(
     val fileName: FileName,
     val filePath: FilePath,
     val fileSize: FileSize,
-    val folderId: FolderId,
+    val folderId: FolderId?,
     val cloudPath: CloudPath,
 )

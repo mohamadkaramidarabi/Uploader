@@ -1,0 +1,157 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "1843f3e2f2102a33acbdb177a4603511",
+    "entities": [
+      {
+        "tableName": "uploads",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`upload_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `upload_server_id` TEXT, `upload_key` TEXT, `upload_file_name` TEXT NOT NULL, `upload_file_path` TEXT NOT NULL, `upload_file_size` INTEGER NOT NULL, `upload_chunk_size` INTEGER, `upload_chunk_count` INTEGER, `upload_state` TEXT NOT NULL, `upload_folder_id` TEXT, `upload_version_group` TEXT, `upload_cloud_path` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "upload_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serverId",
+            "columnName": "upload_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "key",
+            "columnName": "upload_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fileName",
+            "columnName": "upload_file_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "upload_file_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileSize",
+            "columnName": "upload_file_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chunkSize",
+            "columnName": "upload_chunk_size",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "chunkCount",
+            "columnName": "upload_chunk_count",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "upload_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "upload_folder_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "versionGroup",
+            "columnName": "upload_version_group",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cloudPath",
+            "columnName": "upload_cloud_path",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "upload_id"
+          ]
+        }
+      },
+      {
+        "tableName": "upload_link",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`link_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `link_upload_id` INTEGER NOT NULL, `link_e_tag` TEXT, `link_state` TEXT NOT NULL, `link_retry_count` INTEGER NOT NULL, `link_chunk_size` INTEGER NOT NULL, `link_url` TEXT NOT NULL, FOREIGN KEY(`link_upload_id`) REFERENCES `uploads`(`upload_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "link_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadId",
+            "columnName": "link_upload_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eTag",
+            "columnName": "link_e_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "link_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "retryCount",
+            "columnName": "link_retry_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chunkSize",
+            "columnName": "link_chunk_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "link_url",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "link_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "uploads",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "link_upload_id"
+            ],
+            "referencedColumns": [
+              "upload_id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1843f3e2f2102a33acbdb177a4603511')"
+    ]
+  }
+}
