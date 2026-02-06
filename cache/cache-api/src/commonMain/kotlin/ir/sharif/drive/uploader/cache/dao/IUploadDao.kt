@@ -55,4 +55,6 @@ interface IUploadDao<T: IUploadEntity,L: ILinkEntity,UL: IUploadWithLinks<T,L>> 
 
     fun uploadItems(): Flow<List<UploadItem>>
     fun uploadItemsByState(state: States.UploadInfo.State): Flow<List<UploadItem>>
+
+    suspend fun deleteAll()
 }

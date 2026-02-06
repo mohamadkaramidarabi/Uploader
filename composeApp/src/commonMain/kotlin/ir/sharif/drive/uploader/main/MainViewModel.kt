@@ -111,5 +111,11 @@ class MainViewModel : ViewModel(), KoinComponent {
             uploader.cancel(id)
         }
     }
+
+    fun deleteAll() {
+        viewModelScope.launch {
+            uploader.deleteAll()
+        }
+    }
 }
 

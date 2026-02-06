@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.sharif.drive.uploader.models.States
-import ir.sharif.drive.uploader.models.UploadInfo.Link
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -53,6 +52,15 @@ fun MainScreen() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Select Files")
+        }
+
+        Button(
+            onClick = {
+                viewModel.deleteAll()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Delete All")
         }
 
         Spacer(Modifier.height(16.dp))

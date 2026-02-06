@@ -338,4 +338,10 @@ internal class Uploader private constructor(
             }
         }
     }
+
+    override suspend fun deleteAll() {
+        rootJob?.cancel()
+        uploadCache.deleteAll()
+        init()
+    }
 }

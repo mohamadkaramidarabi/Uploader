@@ -106,4 +106,8 @@ internal object UploadCache : IUploadCache {
     override val allUploadsItem: Flow<List<UploadItem>> by lazy {
         uploadDao.uploadItems()
     }
+
+    override suspend fun deleteAll() {
+        uploadDao.deleteAll()
+    }
 }

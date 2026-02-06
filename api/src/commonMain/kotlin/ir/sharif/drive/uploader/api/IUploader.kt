@@ -29,4 +29,6 @@ interface IUploader {
     suspend fun resume(id: Long)
     suspend fun cancel(id: Long)
 
+    suspend fun deleteAll()
+
 }

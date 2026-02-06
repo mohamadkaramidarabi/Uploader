@@ -124,6 +124,10 @@ private class UploadDaoAdapter(
 
     override fun uploadItemsByState(state: States.UploadInfo.State): Flow<List<UploadItem>> =
         uploadDao.uploadItemsByState(state)
+
+    override suspend fun deleteAll() {
+        uploadDao.deleteAll()
+    }
 }
 
 val uploadDao: IUploadDao<IUploadEntity, ILinkEntity, IUploadWithLinks<IUploadEntity, ILinkEntity>> =
@@ -301,5 +305,9 @@ internal interface UploadDao : IUploadDao<UploadEntity, LinkEntity, UploadWithLi
             "upload_file_size as size, upload_state as state from uploads " +
             "where upload_state = :state")
     override fun uploadItemsByState(state: States.UploadInfo.State): Flow<List<UploadItem>>
+
+
+    @Query("delete from uploads")
+    override suspend fun deleteAll()
 
 }
