@@ -20,10 +20,12 @@ import ir.sharif.drive.uploader.source.file.createFileReader
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.concurrent.Volatile
 
 internal class Uploader private constructor(
@@ -75,7 +77,7 @@ internal class Uploader private constructor(
         while (rootJob?.isCompleted == false) {
             continue
         }
-        rootJob = viewModelScope.launch {
+        rootJob = viewModelScope.launch(context = Dispatchers.Default) {
             uploadCache.init()
             println("uploader initialization started")
             launch {
@@ -167,7 +169,7 @@ internal class Uploader private constructor(
         putJobs[link.uploadId] =
             (putJobs[link.uploadId] ?: arrayListOf()).apply {
                 add(
-                    viewModelScope.launch {
+                    viewModelScope.launch(context = Dispatchers.Default) {
                         uploadCache.updateLink(link.copy(state = States.Link.State.RUNNING))
                         val uploadInfo =
                             uploadCache.getUploadInfoById(link.uploadId) ?: return@launch
@@ -220,36 +222,44 @@ internal class Uploader private constructor(
             }
     }
 
-    private suspend fun start(uploadInfo: UploadInfo) {
+    private suspend fun start(uploadInfo: UploadInfo) = withContext(Dispatchers.Default) {
         uploadCache.update(uploadInfo.copy(state = States.UploadInfo.State.STARTING))
-        val result = runCatching { startUpload(uploadInfo.size.value) }
-        result.getOrNull()?.let { result ->
-            uploadCache.updateWithLinks(
-                uploadInfo.copy(
-                    uploadId = result.uploadId.uploadId,
-                    key = result.key.cloudKey,
-                    chunkSize = result.chunkSize.chunkSize,
-                    chunkCount = result.links.size.chunkCount,
-                    state = States.UploadInfo.State.STARTED,
-                    links = result.links.map {
-                        val uri = it.toKmpUriOrNull()
-                        UploadInfo.Link(
-                            uploadId = uploadInfo.id,
-                            eTag = null,
-                            state = States.Link.State.IN_QUEUE,
-                            retryCount = 0,
-                            id = 0,
-                            size = uri?.getQueryParameter(key = SIZE)
-                                ?.toLongOrNull()
-                                ?: result.chunkSize,
-                            url = it
-                        )
-                    }
-                ))
-        }
+        runCatching { startUpload(uploadInfo.size.value) }.fold(
+            onSuccess = { result ->
+                uploadCache.updateWithLinks(
+                    uploadInfo.copy(
+                        uploadId = result.uploadId.uploadId,
+                        key = result.key.cloudKey,
+                        chunkSize = result.chunkSize.chunkSize,
+                        chunkCount = result.links.size.chunkCount,
+                        state = States.UploadInfo.State.STARTED,
+                        links = result.links.map {
+                            val uri = it.toKmpUriOrNull()
+                            UploadInfo.Link(
+                                uploadId = uploadInfo.id,
+                                eTag = null,
+                                state = States.Link.State.IN_QUEUE,
+                                retryCount = 0,
+                                id = 0,
+                                size = uri?.getQueryParameter(key = SIZE)
+                                    ?.toLongOrNull()
+                                    ?: result.chunkSize,
+                                url = it
+                            )
+                        }
+                    ))
+            },
+            onFailure = {
+                uploadCache.update(
+                    uploadInfo.copy(
+                        state = States.UploadInfo.State.FAILED
+                    )
+                )
+            }
+        )
     }
 
-    private suspend fun fail(uploadId: Long) {
+    private suspend fun fail(uploadId: Long) = withContext(Dispatchers.Default) {
         uploadCache.getUploadInfoById(uploadId)?.let {
             if (it.links.isNotEmpty()) {
                 cancel(uploadId)
@@ -262,7 +272,7 @@ internal class Uploader private constructor(
     }
 
     private fun prepare(uploadInfo: UploadInfo) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             uploadCache.update(uploadInfo.copy(state = States.UploadInfo.State.PREPARING))
             uploadCache.update(uploadInfo.copy(state = States.UploadInfo.State.PREPARED))
         }
@@ -272,7 +282,7 @@ internal class Uploader private constructor(
     override fun upload(
         requests: List<UploadRequest>
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             requests.map {
                 UploadInfo(
                     id = 0,
@@ -303,38 +313,51 @@ internal class Uploader private constructor(
 
 
     override suspend fun pause(id: Long) {
-        uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
-            if (uploadInfo.state == States.UploadInfo.State.UPLOADING) {
-                putJobs[id]?.map { it.cancel() }
-                uploadCache.pause(id)
+        withContext(Dispatchers.Default) {
+            uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
+                if (uploadInfo.state == States.UploadInfo.State.UPLOADING) {
+                    putJobs[id]?.map { it.cancel() }
+                    uploadCache.pause(id)
+                }
             }
         }
     }
 
     override suspend fun resume(id: Long) {
-        uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
-            if (uploadInfo.state == States.UploadInfo.State.PAUSED) {
-                uploadCache.updateWithLinks(
-                    uploadInfo = uploadInfo.copy(
-                        state = States.UploadInfo.State.UPLOADING,
-                        links = uploadInfo.links.map { link ->
-                            if (link.state == States.Link.State.PAUSED) {
-                                link.copy(state = States.Link.State.IN_QUEUE)
-                            } else {
-                                link
+        withContext(Dispatchers.Default) {
+            uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
+                if (uploadInfo.state == States.UploadInfo.State.PAUSED) {
+                    uploadCache.updateWithLinks(
+                        uploadInfo = uploadInfo.copy(
+                            state = States.UploadInfo.State.UPLOADING,
+                            links = uploadInfo.links.map { link ->
+                                if (link.state == States.Link.State.PAUSED) {
+                                    link.copy(state = States.Link.State.IN_QUEUE)
+                                } else {
+                                    link
+                                }
                             }
-                        }
+                        )
                     )
-                )
+                }
             }
         }
     }
 
     override suspend fun cancel(id: Long) {
-        uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
-            putJobs[id]?.map { it.cancel() }
-            if (uploadInfo.state == States.UploadInfo.State.UPLOADING) {
-                uploadCache.cancel(id)
+        withContext(Dispatchers.Default) {
+            uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
+                putJobs[id]?.map { it.cancel() }
+                if (uploadInfo.state !in listOf(
+                        States.UploadInfo.State.STARTING,
+                        States.UploadInfo.State.COMPLETING,
+                        States.UploadInfo.State.CANCELED,
+                        States.UploadInfo.State.SUCCESS,
+                        States.UploadInfo.State.FAILED,
+                    )
+                ) {
+                    uploadCache.cancel(id)
+                }
             }
         }
     }
