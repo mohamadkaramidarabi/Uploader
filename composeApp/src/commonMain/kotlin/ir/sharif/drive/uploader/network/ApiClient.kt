@@ -26,7 +26,7 @@ expect fun getTokenStorage(): TokenStorage
 fun createApiClient(baseUrl: String, json: Json): HttpClient {
     val baseClient = createHttpClient()
     val tokenStorage = getTokenStorage()
-    
+
     return HttpClient(baseClient) {
         install(ContentNegotiation) {
             json(json)
@@ -42,7 +42,7 @@ fun createApiClient(baseUrl: String, json: Json): HttpClient {
             socketTimeoutMillis = 60000
             connectTimeoutMillis = 60000
         }
-
+        expectSuccess = true
         defaultRequest {
             contentType(ContentType.Application.Json)
             url(baseUrl)
@@ -57,7 +57,7 @@ fun createApiClient(baseUrl: String, json: Json): HttpClient {
                     val tokens = tokenStorage.getTokens()
                     val access = tokens?.access?.removePrefix("Bearer ")?.removePrefix("bearer ")
                     val refresh = tokens?.refresh
-                    
+
                     if (access != null && refresh != null) {
                         BearerTokens(access, refresh)
                     } else if (access != null) {
@@ -66,7 +66,7 @@ fun createApiClient(baseUrl: String, json: Json): HttpClient {
                         null
                     }
                 }
-                
+
                 refreshTokens {
                     val tokens = tokenStorage.getTokens()
                     val refreshToken = tokens?.refresh ?: return@refreshTokens BearerTokens("", "")
@@ -77,7 +77,7 @@ fun createApiClient(baseUrl: String, json: Json): HttpClient {
                             markAsRefreshTokenRequest()
                         }.body<RefreshTokenResult>()
                     }
-                    
+
                     result.getOrNull()?.let { refreshResult ->
                         val newAccess = refreshResult.access
                         if (newAccess != null) {
@@ -86,7 +86,7 @@ fun createApiClient(baseUrl: String, json: Json): HttpClient {
                             return@refreshTokens BearerTokens(newAccess, refreshToken)
                         }
                     }
-                    
+
                     BearerTokens("", "")
                 }
             }
