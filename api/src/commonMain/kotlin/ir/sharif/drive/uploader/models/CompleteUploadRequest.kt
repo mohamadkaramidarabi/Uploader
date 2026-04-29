@@ -7,8 +7,9 @@ data class CompleteUploadRequest(
     val uploadId: String,
     val parts: List<Part>,
     val forceOverwrite: Boolean? = null,
-    val versionGroup: String? = null,
+    val versionGroup: String?,
     val isHidden: Boolean = false,
+    val metaData: String?,
 ) {
     data class Part(
         val eTag: String,

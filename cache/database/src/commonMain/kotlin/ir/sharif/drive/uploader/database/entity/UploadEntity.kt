@@ -34,6 +34,8 @@ internal data class UploadEntity(
     override val versionGroup: String?,
     @ColumnInfo("upload_cloud_path")
     override val cloudPath: String,
+    @ColumnInfo("meta_data")
+    override val metaData: String?
 ): IUploadEntity
 
 
@@ -50,6 +52,7 @@ fun createUploadEntity(
     folderId: String?,
     versionGroup: String?,
     cloudPath: String,
+    metaData: String?,
 ): IUploadEntity = UploadEntity(
     id = id,
     serverId = serverId,
@@ -62,5 +65,6 @@ fun createUploadEntity(
     state = state,
     folderId = folderId,
     versionGroup = versionGroup,
-    cloudPath = cloudPath
+    cloudPath = cloudPath,
+    metaData = metaData,
 )

@@ -15,4 +15,5 @@ interface IUploadEntity {
     val folderId: String?
     val versionGroup: String?
     val cloudPath: String
+    val metaData: String?
 }

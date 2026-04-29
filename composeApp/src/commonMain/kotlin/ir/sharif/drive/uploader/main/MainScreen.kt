@@ -139,6 +139,19 @@ fun MainScreen() {
                                 // No action buttons needed
                             }
                         }
+
+                        if (file.state in listOf(
+                                States.UploadInfo.State.FAILED,
+                                States.UploadInfo.State.CANCELED,
+                        )) {
+                            Button(
+                                onClick = {
+                                    viewModel.retry(file)
+                                }
+                            ) {
+                                Text("retry")
+                            }
+                        }
                     }
                 }
             }

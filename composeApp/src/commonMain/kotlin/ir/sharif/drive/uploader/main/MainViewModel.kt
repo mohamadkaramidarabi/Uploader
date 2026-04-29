@@ -8,6 +8,7 @@ import ir.sharif.drive.uploader.models.FileName.Companion.fileName
 import ir.sharif.drive.uploader.models.FilePath.Companion.filePath
 import ir.sharif.drive.uploader.models.FileSize.Companion.fileSize
 import ir.sharif.drive.uploader.models.StartUploadResponse
+import ir.sharif.drive.uploader.models.UploadInfo
 import ir.sharif.drive.uploader.models.UploadRequest
 import ir.sharif.drive.uploader.network.UploadApi
 import ir.sharif.drive.uploader.network.models.CompleteUploadRequest
@@ -34,7 +35,7 @@ class MainViewModel : ViewModel(), KoinComponent {
     }
 
     private val uploader: IUploader = IUploader.init(
-        startUpload = { size ->
+        startUpload = { size, _ ->
             val response = uploadApi.startUpload(size)
             StartUploadResponse(
                 uploadId = response.uploadId,
@@ -56,6 +57,9 @@ class MainViewModel : ViewModel(), KoinComponent {
             )
             uploadApi.completeUpload(request)
         },
+        cancelUpload = {
+
+        },
         fileReaderContext = Any()
     )
     private val _selectedFiles = MutableStateFlow<List<PickedFile>>(emptyList())
@@ -71,8 +75,9 @@ class MainViewModel : ViewModel(), KoinComponent {
                 filePath = it.path.filePath,
                 fileSize = it.size.fileSize,
                 folderId = null,
-                cloudPath = "/".cloudPath
-
+                cloudPath = "/".cloudPath,
+                versionGroup = null,
+                metaData = null,
             )
         }.also {
             uploader.upload(it)
@@ -115,6 +120,12 @@ class MainViewModel : ViewModel(), KoinComponent {
     fun deleteAll() {
         viewModelScope.launch {
             uploader.deleteAll()
+        }
+    }
+
+    fun retry(uploadInfo: UploadInfo) {
+        viewModelScope.launch {
+            uploader.retry(uploadInfo.id)
         }
     }
 }

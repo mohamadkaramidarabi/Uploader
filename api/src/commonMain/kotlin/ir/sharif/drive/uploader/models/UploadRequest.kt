@@ -6,4 +6,6 @@ data class UploadRequest(
     val fileSize: FileSize,
     val folderId: FolderId?,
     val cloudPath: CloudPath,
+    val versionGroup: String?,
+    val metaData: String?
 )

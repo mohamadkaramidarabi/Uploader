@@ -11,6 +11,7 @@ import ir.sharif.drive.uploader.models.CompleteUploadRequest
 import ir.sharif.drive.uploader.models.FilePath
 import ir.sharif.drive.uploader.models.StartUploadResponse
 import ir.sharif.drive.uploader.models.States
+import ir.sharif.drive.uploader.models.UploadId
 import ir.sharif.drive.uploader.models.UploadId.Companion.uploadId
 import ir.sharif.drive.uploader.models.UploadInfo
 import ir.sharif.drive.uploader.models.UploadRequest
@@ -23,15 +24,17 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.Volatile
 
 internal class Uploader private constructor(
-    private val startUpload: suspend (size: Long) -> StartUploadResponse,
+    private val startUpload: suspend (size: Long, metaData: String?) -> StartUploadResponse,
     private val putChunk: suspend (String, ByteArray, Long) -> String,
     private val completeUpload: suspend (CompleteUploadRequest) -> Unit,
+    private val cancelUpload: suspend (UploadInfo) -> Unit,
     private val fileReader: FileReader,
 ) : IUploader, ViewModel() {
     companion object {
@@ -39,15 +42,22 @@ internal class Uploader private constructor(
         private var instance: Uploader? = null
         private val LOCK = SynchronizedObject()
         fun getInstance(
-            startUpload: suspend (Long) -> StartUploadResponse,
+            startUpload: suspend (size: Long, metaData: String?) -> StartUploadResponse,
             putChunk: suspend (String, ByteArray, Long) -> String,
             completeUpload: suspend (CompleteUploadRequest) -> Unit,
+            cancelUpload: suspend (uploadInfo: UploadInfo) -> Unit,
             fileReaderContext: Any,
         ): IUploader {
             return instance ?: synchronized(lock = LOCK) {
                 val fileReader = createFileReader(fileReaderContext)
                 val newInstance =
-                    instance ?: Uploader(startUpload, putChunk, completeUpload, fileReader)
+                    instance ?: Uploader(
+                        startUpload,
+                        putChunk,
+                        completeUpload,
+                        cancelUpload,
+                        fileReader
+                    )
                 newInstance.init()
                 instance = newInstance
                 newInstance
@@ -156,6 +166,7 @@ internal class Uploader private constructor(
                             )
                         },
                     versionGroup = uploadInfo.versionGroup,
+                    metaData = uploadInfo.metaData
                 )
             )
         }
@@ -224,7 +235,7 @@ internal class Uploader private constructor(
 
     private suspend fun start(uploadInfo: UploadInfo) = withContext(Dispatchers.Default) {
         uploadCache.update(uploadInfo.copy(state = States.UploadInfo.State.STARTING))
-        runCatching { startUpload(uploadInfo.size.value) }.fold(
+        runCatching { startUpload(uploadInfo.size.value, uploadInfo.metaData) }.fold(
             onSuccess = { result ->
                 uploadCache.updateWithLinks(
                     uploadInfo.copy(
@@ -297,7 +308,8 @@ internal class Uploader private constructor(
                     folderId = it.folderId,
                     cloudPath = it.cloudPath,
                     links = emptyList(),
-                    versionGroup = null,
+                    versionGroup = it.versionGroup,
+                    metaData = it.metaData,
                 )
             }.let {
                 uploadCache.insertAll(it)
@@ -358,13 +370,47 @@ internal class Uploader private constructor(
                 ) {
                     uploadCache.cancel(id)
                 }
+                runCatching {
+                    if (uploadInfo.state != States.UploadInfo.State.CANCELED) {
+                        cancelUpload(uploadInfo)
+                    }
+                }
             }
         }
     }
 
     override suspend fun deleteAll() {
         rootJob?.cancel()
+        val runningItems = getAllUploadInfos().firstOrNull()
+            ?.filter {
+                it.state in listOf(
+                    States.UploadInfo.State.STARTED,
+                    States.UploadInfo.State.PAUSED,
+                    States.UploadInfo.State.UPLOADING,
+                    States.UploadInfo.State.ALL_PUT_DONE,
+                )
+            }
         uploadCache.deleteAll()
+        runningItems?.forEach {
+            if (it.state != States.UploadInfo.State.CANCELED) {
+                runCatching { cancelUpload(it) }
+            }
+        }
         init()
+    }
+
+    override suspend fun retry(id: Long) {
+        val uploadInfo = uploadCache.getUploadInfoById(id) ?: return
+        uploadCache.deleteLinksOfUpload(id)
+        uploadCache.update(
+            uploadInfo.copy(
+                uploadId = null,
+                state = States.UploadInfo.State.IN_QUEUE,
+                key = null,
+                chunkSize = null,
+                chunkCount = null,
+                links = emptyList()
+            )
+        )
     }
 }

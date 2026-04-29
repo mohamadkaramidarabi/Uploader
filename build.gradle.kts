@@ -10,7 +10,7 @@ plugins {
 subprojects {
     if (project.name == "composeApp") return@subprojects
     group = "io.github.mohamadkaramidarabi"
-    version = "0.0.9"
+    version = "0.1.5"
     apply(plugin = "com.vanniktech.maven.publish")
 
 

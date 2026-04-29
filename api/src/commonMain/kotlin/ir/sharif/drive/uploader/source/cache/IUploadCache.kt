@@ -47,6 +47,10 @@ internal interface IUploadCache {
 
     suspend fun deleteAll()
 
+    suspend fun deleteLinksOfUpload(uploadId: Long)
+
+    suspend fun updateStateWithId(id: Long, state: States.UploadInfo.State)
+
     val firstInQueueOrFailedLink: Flow<UploadInfo.Link?>
 
     val firstAllPutDone: Flow<UploadInfo?>

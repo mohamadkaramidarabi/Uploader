@@ -22,6 +22,7 @@ actual val UploadInfo.toUploadEntity: IUploadEntity
         folderId = folderId?.value,
         versionGroup = versionGroup,
         cloudPath = cloudPath.value,
+        metaData = metaData,
     )
 
 internal actual val UploadInfo.Link.toLinkEntity: ILinkEntity

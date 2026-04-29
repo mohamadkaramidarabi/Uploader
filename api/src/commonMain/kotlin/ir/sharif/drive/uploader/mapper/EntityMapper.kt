@@ -54,7 +54,8 @@ internal val IUploadEntity.toUploadInfo: UploadInfo
         folderId = folderId.folderId,
         cloudPath = cloudPath.cloudPath,
         links = emptyList(),
-        versionGroup = versionGroup
+        versionGroup = versionGroup,
+        metaData = metaData
     )
 
 internal val Flow<IUploadEntity?>.toUploadInfoFlow: Flow<UploadInfo?>

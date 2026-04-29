@@ -110,4 +110,12 @@ internal object UploadCache : IUploadCache {
     override suspend fun deleteAll() {
         uploadDao.deleteAll()
     }
+
+    override suspend fun deleteLinksOfUpload(uploadId: Long) {
+        uploadDao.deleteLinksByUploadId(uploadId)
+    }
+
+    override suspend fun updateStateWithId(id: Long, state: States.UploadInfo.State) {
+        uploadDao.updateUploadStateById(id, state)
+    }
 }
