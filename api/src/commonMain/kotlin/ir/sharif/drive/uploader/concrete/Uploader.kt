@@ -1,9 +1,9 @@
 package ir.sharif.drive.uploader.concrete
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.eygraber.uri.toKmpUriOrNull
 import ir.sharif.drive.uploader.api.IUploader
+import ir.sharif.drive.uploader.api.UploadBackgroundObserver
+import ir.sharif.drive.uploader.api.UploadEngineRuntime
 import ir.sharif.drive.uploader.models.ChunkCount.Companion.chunkCount
 import ir.sharif.drive.uploader.models.ChunkSize.Companion.chunkSize
 import ir.sharif.drive.uploader.models.CloudKey.Companion.cloudKey
@@ -14,6 +14,7 @@ import ir.sharif.drive.uploader.models.States
 import ir.sharif.drive.uploader.models.UploadId
 import ir.sharif.drive.uploader.models.UploadId.Companion.uploadId
 import ir.sharif.drive.uploader.models.UploadInfo
+import ir.sharif.drive.uploader.models.UploadNotificationSettings
 import ir.sharif.drive.uploader.models.UploadRequest
 import ir.sharif.drive.uploader.source.cache.IUploadCache
 import ir.sharif.drive.uploader.source.file.FileReader
@@ -21,8 +22,10 @@ import ir.sharif.drive.uploader.source.file.createFileReader
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
@@ -36,7 +39,8 @@ internal class Uploader private constructor(
     private val completeUpload: suspend (CompleteUploadRequest) -> Unit,
     private val cancelUpload: suspend (UploadInfo) -> Unit,
     private val fileReader: FileReader,
-) : IUploader, ViewModel() {
+    private val uploadNotificationSettings: UploadNotificationSettings,
+) : IUploader {
     companion object {
         @Volatile
         private var instance: Uploader? = null
@@ -47,6 +51,7 @@ internal class Uploader private constructor(
             completeUpload: suspend (CompleteUploadRequest) -> Unit,
             cancelUpload: suspend (uploadInfo: UploadInfo) -> Unit,
             fileReaderContext: Any,
+            uploadNotificationSettings: UploadNotificationSettings,
         ): IUploader {
             return instance ?: synchronized(lock = LOCK) {
                 val fileReader = createFileReader(fileReaderContext)
@@ -56,7 +61,8 @@ internal class Uploader private constructor(
                         putChunk,
                         completeUpload,
                         cancelUpload,
-                        fileReader
+                        fileReader,
+                        uploadNotificationSettings,
                     )
                 newInstance.init()
                 instance = newInstance
@@ -80,14 +86,19 @@ internal class Uploader private constructor(
         return fileReader.readChunk(filePath, chunkIndex, chunkSize)
     }
 
+    private val engineJob = SupervisorJob()
+    private val engineScope = CoroutineScope(engineJob + Dispatchers.Default)
+
     private var rootJob: Job? = null
     private val putJobs = mutableMapOf<Long, ArrayList<Job>>()
     private fun init() {
+        UploadEngineRuntime.updateFromUploader(uploadNotificationSettings)
+        UploadBackgroundObserver.start(this, engineScope)
         rootJob?.cancel(CancellationException("init new root job for uploader"))
         while (rootJob?.isCompleted == false) {
             continue
         }
-        rootJob = viewModelScope.launch(context = Dispatchers.Default) {
+        rootJob = engineScope.launch(context = Dispatchers.Default) {
             uploadCache.init()
             println("uploader initialization started")
             launch {
@@ -180,7 +191,7 @@ internal class Uploader private constructor(
         putJobs[link.uploadId] =
             (putJobs[link.uploadId] ?: arrayListOf()).apply {
                 add(
-                    viewModelScope.launch(context = Dispatchers.Default) {
+                    engineScope.launch(context = Dispatchers.Default) {
                         uploadCache.updateLink(link.copy(state = States.Link.State.RUNNING))
                         val uploadInfo =
                             uploadCache.getUploadInfoById(link.uploadId) ?: return@launch
@@ -283,7 +294,7 @@ internal class Uploader private constructor(
     }
 
     private fun prepare(uploadInfo: UploadInfo) {
-        viewModelScope.launch(Dispatchers.Default) {
+        engineScope.launch(Dispatchers.Default) {
             uploadCache.update(uploadInfo.copy(state = States.UploadInfo.State.PREPARING))
             uploadCache.update(uploadInfo.copy(state = States.UploadInfo.State.PREPARED))
         }
@@ -293,7 +304,7 @@ internal class Uploader private constructor(
     override fun upload(
         requests: List<UploadRequest>
     ) {
-        viewModelScope.launch(Dispatchers.Default) {
+        engineScope.launch(Dispatchers.Default) {
             requests.map {
                 UploadInfo(
                     id = 0,

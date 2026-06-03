@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Uploader</string>
+    <!-- Play Console / policy: describe dataSync FGS use (file upload in background). -->
+    <string name="fgs_data_sync_justification">Keeps file uploads running and shows upload progress when the app is in the background.</string>
+</resources>

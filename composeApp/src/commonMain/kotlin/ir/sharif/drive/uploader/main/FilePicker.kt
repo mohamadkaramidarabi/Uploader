@@ -4,6 +4,6 @@ import androidx.compose.runtime.Composable
 
 @Composable
 expect fun FilePicker(
-    trigger: Boolean,
-    onFilesSelected: (List<PickedFile>) -> Unit
+    requestId: Int,
+    onFilesSelected: (List<PickedFile>) -> Unit,
 )

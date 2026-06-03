@@ -12,12 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
-import ir.sharif.drive.uploader.api.IUploader
-import ir.sharif.drive.uploader.di.KoinApplication
+import ir.sharif.drive.uploader.di.AppKoinHost
 import ir.sharif.drive.uploader.main.MainScreen
-import ir.sharif.drive.uploader.models.StartUploadResponse
-import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
 sealed class Screen {
@@ -29,7 +25,7 @@ sealed class Screen {
 @Composable
 @Preview
 fun App() {
-    KoinApplication {
+    AppKoinHost {
         MaterialTheme {
             var currentScreen by remember { mutableStateOf<Screen>(Screen.Phone) }
             var phone by remember { mutableStateOf("") }

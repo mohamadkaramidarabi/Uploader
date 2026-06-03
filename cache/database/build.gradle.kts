@@ -4,24 +4,27 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
 }
 
+// Avoid Windows file locks on the default module-local classes.jar (IDE/antivirus indexing).
+layout.buildDirectory.set(
+    rootProject.layout.buildDirectory.dir("module-builds/cache-database"),
+)
+
 room {
     schemaDirectory("$projectDir/schemas")
 }
-android {
-    namespace = "io.github.mohamadkaramidarabi.cache.database"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 23
-    }
-}
 
 kotlin {
-    androidTarget()
+    android {
+        namespace = "io.github.mohamadkaramidarabi.cache.database"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -34,7 +37,6 @@ kotlin {
 
     jvm()
 
-
     sourceSets {
         commonMain {
             dependencies {
@@ -45,7 +47,6 @@ kotlin {
             }
         }
     }
-
 }
 
 dependencies {

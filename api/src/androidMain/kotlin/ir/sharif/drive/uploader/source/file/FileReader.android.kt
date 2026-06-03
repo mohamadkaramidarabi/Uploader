@@ -5,6 +5,7 @@ import android.net.Uri
 import ir.sharif.drive.uploader.models.FilePath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
 
 actual class FileReader(private val context: Context?) {
     actual suspend fun readChunk(
@@ -13,7 +14,7 @@ actual class FileReader(private val context: Context?) {
         chunkSize: Long
     ): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            val uri = Uri.parse(filePath.value)
+            val uri = filePath.value.toUri()
             context?.contentResolver?.openInputStream(uri)?.use { inputStream ->
                 val offset = chunkIndex * chunkSize
                 inputStream.skip(offset)
@@ -30,6 +31,7 @@ actual class FileReader(private val context: Context?) {
                 }
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }

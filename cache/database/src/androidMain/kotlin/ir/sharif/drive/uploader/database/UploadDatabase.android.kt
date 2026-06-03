@@ -1,5 +1,16 @@
 package ir.sharif.drive.uploader.database
 
-internal actual fun provideUploadDatabase(platformContext: Any?): androidx.room.RoomDatabase.Builder<ir.sharif.drive.uploader.database.UploadDatabase> {
-    TODO("Not yet implemented")
+import android.content.Context
+import androidx.room.Room
+
+internal actual fun provideUploadDatabase(platformContext: Any?): androidx.room.RoomDatabase.Builder<UploadDatabase> {
+    val ctx = platformContext as? Context
+        ?: error(
+            "UploadDatabase.configureForPlatform(Application) must be called on Android before any database access.",
+        )
+    return Room.databaseBuilder(
+        ctx.applicationContext,
+        UploadDatabase::class.java,
+        "drive_uploader.db",
+    )
 }

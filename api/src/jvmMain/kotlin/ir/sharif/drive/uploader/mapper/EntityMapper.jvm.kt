@@ -8,7 +8,7 @@ import ir.sharif.drive.uploader.database.entity.createLinkEntity
 import ir.sharif.drive.uploader.database.entity.createUploadEntity
 import ir.sharif.drive.uploader.models.UploadInfo
 
-actual val UploadInfo.toUploadEntity: IUploadEntity
+internal actual val UploadInfo.toUploadEntity: IUploadEntity
     get() = createUploadEntity(
         id = id,
         serverId = uploadId?.value,

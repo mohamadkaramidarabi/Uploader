@@ -1,16 +1,17 @@
 plugins {
     alias(libs.plugins.androidApplication) apply false
-    alias(libs.plugins.androidLibrary) apply false
+    alias(libs.plugins.androidMultiplatformLibrary) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
+    alias(libs.plugins.kotlinJvm) apply false
     id("com.vanniktech.maven.publish") version "0.36.0"
 }
 
 subprojects {
-    if (project.name == "composeApp") return@subprojects
+    if (project.name in listOf("composeApp", "androidApp", "desktopApp", "webApp")) return@subprojects
     group = "io.github.mohamadkaramidarabi"
-    version = "0.1.5"
+    version = "0.1.7"
     apply(plugin = "com.vanniktech.maven.publish")
 
 

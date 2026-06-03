@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
 }
@@ -13,16 +13,13 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
-android {
-    namespace = "io.github.mohamadkaramidarabi.cache.api"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 23
-    }
-}
-
 kotlin {
-    androidTarget()
+    android {
+        namespace = "io.github.mohamadkaramidarabi.cache.api"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -45,7 +42,6 @@ kotlin {
         binaries.executable()
     }
 
-
     sourceSets {
         commonMain {
             dependencies {
@@ -54,5 +50,4 @@ kotlin {
             }
         }
     }
-
 }

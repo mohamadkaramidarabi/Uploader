@@ -35,6 +35,9 @@ plugins {
 }
 
 include(":composeApp")
+include(":androidApp")
+include(":desktopApp")
+include(":webApp")
 include(":api")
 include(":common")
 include(":cache:cache-api")

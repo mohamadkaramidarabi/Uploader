@@ -16,7 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -29,15 +29,15 @@ import org.koin.compose.viewmodel.koinViewModel
 fun MainScreen() {
     val viewModel: MainViewModel = koinViewModel()
     val selectedFiles by viewModel.selectedFiles.collectAsState()
-    var triggerFilePicker by remember { mutableStateOf(false) }
-
+    var filePickRequest by remember { mutableIntStateOf(0) }
 
     FilePicker(
-        trigger = triggerFilePicker,
+        requestId = filePickRequest,
         onFilesSelected = { files ->
-            viewModel.addFiles(files)
-            triggerFilePicker = false
-        }
+            if (files.isNotEmpty()) {
+                viewModel.addFiles(files)
+            }
+        },
     )
 
     Column(
@@ -47,7 +47,7 @@ fun MainScreen() {
     ) {
         Button(
             onClick = {
-                triggerFilePicker = true
+                filePickRequest++
             },
             modifier = Modifier.fillMaxWidth()
         ) {
