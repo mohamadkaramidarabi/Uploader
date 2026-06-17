@@ -6,12 +6,14 @@ import ir.sharif.drive.uploader.cache.entity.WebLinkEntity
 import ir.sharif.drive.uploader.cache.entity.WebUploadEntity
 import ir.sharif.drive.uploader.models.States
 import kotlin.js.JsAny
+import kotlin.js.Promise
 import kotlinx.coroutines.await
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.w3c.files.Blob
 import org.w3c.files.File
 import kotlin.js.ExperimentalWasmJsInterop
+import kotlin.js.js
 
 @Serializable
 internal data class StoredUpload(
@@ -108,6 +110,172 @@ private const val DB_NAME = "uploader-db"
 private const val DB_VERSION = 1
 
 private var database: JsAny? = null
+
+@Suppress("UNUSED_PARAMETER")
+private val idbOpen: (String, Int) -> Promise<JsAny?> = js(
+    """
+    function(name, version) {
+      return new Promise(function(resolve, reject) {
+        var request = window.indexedDB.open(name, version);
+        request.onupgradeneeded = function(event) {
+          var db = event.target.result;
+          if (!db.objectStoreNames.contains('uploads')) {
+            db.createObjectStore('uploads', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('links')) {
+            db.createObjectStore('links', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('files')) {
+            db.createObjectStore('files', { keyPath: 'path' });
+          }
+          if (!db.objectStoreNames.contains('meta')) {
+            db.createObjectStore('meta', { keyPath: 'key' });
+          }
+        };
+        request.onsuccess = function() { resolve(request.result); };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbSaveJsonRecord: (JsAny, String, Double, String) -> Promise<JsAny?> = js(
+    """
+    function(db, storeName, id, payload) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readwrite');
+        var request = tx.objectStore(storeName).put({ id: id, payload: payload });
+        request.onsuccess = function() { resolve(null); };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbLoadJsonRecords: (JsAny, String) -> Promise<JsAny?> = js(
+    """
+    function(db, storeName) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readonly');
+        var request = tx.objectStore(storeName).getAll();
+        request.onsuccess = function() {
+          var payloads = (request.result || []).map(function(item) { return item.payload; });
+          resolve(JSON.stringify(payloads));
+        };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbDeleteRecord: (JsAny, String, Double) -> Promise<JsAny?> = js(
+    """
+    function(db, storeName, key) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readwrite');
+        var request = tx.objectStore(storeName).delete(key);
+        request.onsuccess = function() { resolve(null); };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbClearStore: (JsAny, String) -> Promise<JsAny?> = js(
+    """
+    function(db, storeName) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readwrite');
+        var request = tx.objectStore(storeName).clear();
+        request.onsuccess = function() { resolve(null); };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbSaveFile: (JsAny, String, String, File) -> Promise<JsAny?> = js(
+    """
+    function(db, path, fileName, file) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('files', 'readwrite');
+        var request = tx.objectStore('files').put({ path: path, fileName: fileName, blob: file });
+        request.onsuccess = function() { resolve(null); };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbLoadFileBlob: (JsAny, String) -> Promise<JsAny?> = js(
+    """
+    function(db, path) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('files', 'readonly');
+        var request = tx.objectStore('files').get(path);
+        request.onsuccess = function() {
+          resolve(request.result ? request.result.blob : null);
+        };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbLoadFileInfos: (JsAny) -> Promise<JsAny?> = js(
+    """
+    function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('files', 'readonly');
+        var request = tx.objectStore('files').getAll();
+        request.onsuccess = function() {
+          var items = (request.result || []).map(function(item) {
+            return { path: item.path, fileName: item.fileName };
+          });
+          resolve(JSON.stringify(items));
+        };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbSaveMeta: (JsAny, String, Double) -> Promise<JsAny?> = js(
+    """
+    function(db, key, value) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('meta', 'readwrite');
+        var request = tx.objectStore('meta').put({ key: key, value: value });
+        request.onsuccess = function() { resolve(null); };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
+
+@Suppress("UNUSED_PARAMETER")
+private val idbLoadMeta: (JsAny, String) -> Promise<JsAny?> = js(
+    """
+    function(db, key) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('meta', 'readonly');
+        var request = tx.objectStore('meta').get(key);
+        request.onsuccess = function() {
+          resolve(request.result ? request.result.value : null);
+        };
+        request.onerror = function() { reject(request.error); };
+      });
+    }
+    """
+)
 
 internal object IndexedDbStore {
     private fun db(): JsAny = database ?: error("IndexedDB is not open")

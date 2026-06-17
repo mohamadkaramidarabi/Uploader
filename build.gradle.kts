@@ -11,7 +11,7 @@ plugins {
 subprojects {
     if (project.name in listOf("composeApp", "androidApp", "desktopApp", "webApp")) return@subprojects
     group = "io.github.mohamadkaramidarabi"
-    version = "0.1.8"
+    version = findProperty("version")?.toString() ?: "0.1.8-SNAPSHOT"
     apply(plugin = "com.vanniktech.maven.publish")
 
 
@@ -27,7 +27,7 @@ subprojects {
             name = "Uploader library"
             description = "An uploader for drive"
             inceptionYear = "2025"
-            url = "http://www.mobintadbir.ir/"
+            url = "https://github.com/mohamadkaramidarabi/uploader"
             licenses {
                 license {
                     name = "The Apache License, Version 2.0"
@@ -43,7 +43,9 @@ subprojects {
                 }
             }
             scm {
-                url = "http://www.mobintadbir.ir/"
+                url = "https://github.com/mohamadkaramidarabi/uploader"
+                connection = "scm:git:git://github.com/mohamadkaramidarabi/uploader.git"
+                developerConnection = "scm:git:ssh://github.com/mohamadkaramidarabi/uploader.git"
             }
         }
     }
