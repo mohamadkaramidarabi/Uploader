@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -38,6 +39,7 @@ kotlin {
         browser {
             binaries.executable()
         }
+        useEsModules()
     }
 
     wasmJs {
@@ -69,6 +71,21 @@ kotlin {
             dependencies {
                 implementation(projects.cache.database)
             }
+        }
+
+        jsMain.dependencies {
+            implementation(libs.kotlinx.browser)
+            implementation(libs.kotlinx.serialization.json)
+        }
+
+        wasmJsMain.dependencies {
+            implementation(libs.kotlinx.browser)
+            implementation(libs.kotlinx.serialization.json)
+        }
+
+        webMain.dependencies {
+            implementation(libs.kotlinx.browser)
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

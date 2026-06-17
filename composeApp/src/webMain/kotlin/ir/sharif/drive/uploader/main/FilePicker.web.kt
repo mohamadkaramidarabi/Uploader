@@ -2,6 +2,8 @@ package ir.sharif.drive.uploader.main
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import ir.sharif.drive.uploader.source.file.WebFileRegistry
+import ir.sharif.drive.uploader.source.file.browserSize
 import kotlinx.browser.document
 import org.w3c.files.File
 
@@ -25,9 +27,9 @@ actual fun FilePicker(
                     val file = files.item(index) as? File
                     file?.let {
                         PickedFile(
-                            path = it.name,
+                            path = WebFileRegistry.register(it),
                             name = it.name,
-                            size = it.size.toLong(),
+                            size = it.browserSize(),
                         )
                     }
                 }

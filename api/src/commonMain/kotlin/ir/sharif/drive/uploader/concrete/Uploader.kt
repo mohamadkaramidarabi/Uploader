@@ -124,17 +124,15 @@ internal class Uploader private constructor(
                     }
             }
             launch {
-                uploadCache.firstInQueueOrFailedLink
-                    .stateIn(this)
-                    .collect { link ->
-                        if (link == null) return@collect
-                        if (link.state == States.Link.State.FAILED) {
-                            fail(link.uploadId)
-                            return@collect
-                        }
-                        println("put : $link")
-                        putLink(link)
+                uploadCache.firstInQueueOrFailedLink.collect { link ->
+                    if (link == null) return@collect
+                    if (link.state == States.Link.State.FAILED) {
+                        fail(link.uploadId)
+                        return@collect
                     }
+                    println("put : $link")
+                    putLink(link)
+                }
             }
             launch {
                 uploadCache.firstAllPutDone
@@ -192,14 +190,16 @@ internal class Uploader private constructor(
             (putJobs[link.uploadId] ?: arrayListOf()).apply {
                 add(
                     engineScope.launch(context = Dispatchers.Default) {
-                        uploadCache.updateLink(link.copy(state = States.Link.State.RUNNING))
                         val uploadInfo =
                             uploadCache.getUploadInfoById(link.uploadId) ?: return@launch
                         if (uploadInfo.state !in listOf(
                                 States.UploadInfo.State.UPLOADING,
                                 States.UploadInfo.State.STARTED
                             )
-                        ) return@launch
+                        ) {
+                            return@launch
+                        }
+                        uploadCache.updateLink(link.copy(state = States.Link.State.RUNNING))
                         val uri = link.url.toKmpUriOrNull()
                         val result = runCatching {
                             if (uploadInfo.chunkSize != null) {
@@ -233,6 +233,10 @@ internal class Uploader private constructor(
                             link.copy(eTag = it, state = States.Link.State.SUCCESS)
                         } ?: run {
                             if (result.exceptionOrNull() is CancellationException) {
+                                val currentUpload = uploadCache.getUploadInfoById(link.uploadId)
+                                if (currentUpload?.state == States.UploadInfo.State.PAUSED) {
+                                    return@launch
+                                }
                                 link
                             } else {
                                 link.copy(state = States.Link.State.FAILED)
@@ -338,8 +342,12 @@ internal class Uploader private constructor(
     override suspend fun pause(id: Long) {
         withContext(Dispatchers.Default) {
             uploadCache.getUploadInfoById(id)?.let { uploadInfo ->
-                if (uploadInfo.state == States.UploadInfo.State.UPLOADING) {
-                    putJobs[id]?.map { it.cancel() }
+                if (uploadInfo.state in listOf(
+                        States.UploadInfo.State.UPLOADING,
+                        States.UploadInfo.State.STARTED,
+                    )
+                ) {
+                    putJobs[id]?.forEach { it.cancel() }
                     uploadCache.pause(id)
                 }
             }
@@ -354,10 +362,10 @@ internal class Uploader private constructor(
                         uploadInfo = uploadInfo.copy(
                             state = States.UploadInfo.State.UPLOADING,
                             links = uploadInfo.links.map { link ->
-                                if (link.state == States.Link.State.PAUSED) {
-                                    link.copy(state = States.Link.State.IN_QUEUE)
-                                } else {
-                                    link
+                                when (link.state) {
+                                    States.Link.State.PAUSED,
+                                    States.Link.State.RUNNING -> link.copy(state = States.Link.State.IN_QUEUE)
+                                    else -> link
                                 }
                             }
                         )

@@ -79,10 +79,11 @@ kotlin {
         }
         jsMain.dependencies {
             implementation(libs.io.ktor.ktor.client.js)
-            implementation(libs.kotlinx.browser)
         }
         wasmJsMain.dependencies {
             implementation(libs.io.ktor.ktor.client.js)
+        }
+        webMain.dependencies {
             implementation(libs.kotlinx.browser)
         }
     }
