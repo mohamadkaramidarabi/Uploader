@@ -10,9 +10,12 @@ plugins {
 }
 
 // Avoid Windows file locks on the default module-local classes.jar (IDE/antivirus indexing).
-layout.buildDirectory.set(
-    rootProject.layout.buildDirectory.dir("module-builds/cache-database"),
-)
+// Keep default build dir on non-Windows (CI/Linux) to avoid publishing/signing path issues.
+if (System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
+    layout.buildDirectory.set(
+        rootProject.layout.buildDirectory.dir("module-builds/cache-database"),
+    )
+}
 
 room {
     schemaDirectory("$projectDir/schemas")
